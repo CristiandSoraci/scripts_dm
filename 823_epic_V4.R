@@ -1,4 +1,4 @@
-#source("~/buckets/b1/crudoB/R/847_epic_stacking.r")
+#source("~/buckets/b1/crudoB/R/823_epic.r")
 
 #Necesita para correr en Google Cloud
 #16 GB de memoria RAM
@@ -29,18 +29,15 @@ require("lightgbm")
 require("DiceKriging")
 require("mlrMBO")
 
-
-#para poder usarlo en la PC y en la nube sin tener que cambiar la ruta
-#cambiar aqui las rutas en su maquina
 #defino la carpeta donde trabajo
 setwd("~/buckets/b1/datasets")
 
 
-kexperimento  <- 23   #NA si se corre la primera vez, un valor concreto si es para continuar procesando
+kexperimento  <- 11   #NA si se corre la primera vez, un valor concreto si es para continuar procesando
 
-kscript         <- "847_epic_stacking"
+kscript         <- "823_epic"
 
-karch_dataset    <- "dataset_stacking_v003.csv.gz"   #este dataset se genero en el script 812_dataset_epic.r
+karch_dataset    <- "dataset_epic_simple_v007.csv.gz"   #este dataset se genero en el script 812_dataset_epic.r
 
 kapply_mes       <- c(202011)  #El mes donde debo aplicar el modelo
 
@@ -55,31 +52,38 @@ kgen_mes_hasta    <- 202009  #Obviamente, solo puedo entrenar hasta 202011
 kgen_mes_desde    <- 202009
 
 
-kBO_iter    <-  100   #cantidad de iteraciones de la Optimizacion Bayesiana
+kBO_iter    <-  150   #cantidad de iteraciones de la Optimizacion Bayesiana
 
 #Aqui se cargan los hiperparametros
 hs <- makeParamSet( 
-  makeNumericParam("learning_rate",    lower=    0.02 , upper=    0.1),
-  makeNumericParam("feature_fraction", lower=    0.08  , upper=    1.0),
-  makeIntegerParam("min_data_in_leaf", lower=  100L   , upper= 8000L),
-  makeIntegerParam("num_leaves",       lower=    8L   , upper= 2000L)
+  makeNumericParam("learning_rate",    lower=    0.02 , upper=    0.08),
+  # makeNumericParam("feature_fraction", lower=    0.1  , upper=    1.0),
+  # makeNumericParam("lambda_l1",        lower=    0    , upper=    100),
+  #        makeNumericParam("lambda_l2",        lower=    0    , upper= 200),
+  makeIntegerParam("min_data_in_leaf", lower=  3800L   , upper= 4100L),
+#  makeIntegerParam("num_leaves",       lower=    8L   , upper= 1024L)
 )
 
-campos_malos  <- c()
+# modelo 666 <- lightgbm( data= dtrain,
+#                      params= list( objective= "binary",
+#                                    max_bin= 15,
+#                                    min_data_in_leaf= 4000,
+#                                    learning_rate= 0.05 )  )
+
+campos_malos  <- c()   #aqui se deben cargar todos los campos culpables del Data Drifting
 #"internet", "cmobile_app_trx", "tmobile_app","mforex_sell",
 #"cforex_sell", "cforex")
 #"mcaja_ahorro_dolares")   #aqui se deben cargar todos los campos culpables del Data Drifting
 
 
-ksemilla_azar  <- 454847  #Aqui poner la propia semilla
-
+ksemilla_azar  <- 454859  #Aqui poner la propia semilla
 # 454823, 454843, 454847, 454849,454859,454889
 #------------------------------------------------------------------------------
 #Funcion que lleva el registro de los experimentos
 
 get_experimento  <- function()
 {
-  if( !file.exists( "./maestro.yaml" ) )  cat( file="./maestro.yaml", "experimento: 1000" )
+  if( !file.exists( "/maestro.yaml" ) )  cat( file="./maestro.yaml", "experimento: 1000" )
   
   exp  <- read_yaml( "./maestro.yaml" )
   experimento_actual  <- exp$experimento
@@ -296,11 +300,11 @@ EstimarGanancia_lightgbm  <- function( x )
                           verbosity= -100,
                           seed= 999983,
                           max_depth=  -1,         # -1 significa no limitar,  por ahora lo dejo fijo
-                          min_gain_to_split= 0.0, #por ahora, lo dejo fijo
-                          lambda_l1= 0.0,         #por ahora, lo dejo fijo
-                          lambda_l2= 0.0,         #por ahora, lo dejo fijo
+                          # min_gain_to_split= 0.0, #por ahora, lo dejo fijo
+                          # lambda_l1= 0.0,         #por ahora, lo dejo fijo
+                          # lambda_l2= 0.0,         #por ahora, lo dejo fijo
                           max_bin= 15,            #por ahora, lo dejo fijo
-                          #                          num_iterations= 9999,   #un numero muy grande, lo limita early_stopping_rounds
+                          num_iterations= 9999,   #un numero muy grande, lo limita early_stopping_rounds
                           force_row_wise= TRUE    #para que los alumnos no se atemoricen con tantos warning
   )
   
@@ -371,6 +375,7 @@ kimp          <- paste0("~/buckets/b1/work/E",  kexperimento, "/E",  kexperiment
 kkaggle       <- paste0("~/buckets/b1/kaggle/E",kexperimento, "/E",  kexperimento, "_", kscript, "_" )
 kkagglemeseta <- paste0("~/buckets/b1/kaggle/E",kexperimento, "/meseta/E",  kexperimento, "_", kscript, "_" )
 kmodelitos    <- paste0("~/buckets/b1/modelitos/E", kexperimento, "_modelitos.csv.gz" )
+
 
 
 #cargo el dataset que tiene los 36 meses
@@ -479,7 +484,3 @@ system( "sleep 10  &&  sudo shutdown -h now", wait=FALSE)
 
 
 quit( save="no" )
-
-
-
-
